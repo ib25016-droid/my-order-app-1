@@ -45,6 +45,17 @@ app.post('/api/order', (req, res) => {
   res.status(201).json({ message: '注文を受け付けました。レジでお支払いください。', orderId: newOrder.id });
 });
 
+// ★★★ [NEW] 注文状態確認API (レシート再表示用) ★★★
+app.get('/api/order/:id', (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  const order = orders.find(o => o.id === id);
+  if (order) {
+    res.json(order);
+  } else {
+    res.status(404).json({ message: '注文が見つかりません' });
+  }
+});
+
 // [GET] /api/sales/today
 app.get('/api/sales/today', (req, res) => {
     let totalRevenue = 0, totalItems = 0;
@@ -80,10 +91,16 @@ io.on('connection', (socket) => {
     if (order && order.status === '支払い待ち') {
       order.status = '受付済';
       io.emit('new_kitchen_order', order); 
+      
+      // ★ 特定のお客様に「支払い完了」通知
+      const targetSocketId = customerSockets[id];
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('payment_confirmed', order);
+      }
     }
   });
   
-  // 厨房からの「ステータス更新」 (調理中)
+  // 厨房からの「ステータス更新」
   socket.on('update_status', ({ id, status }) => {
     const order = orders.find(o => o.id === id);
     if (order && order.status !== '提供可能') { 
@@ -93,7 +110,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  // 厨房からの「調理完了」通知
+  // 厨房からの「調理完了」
   socket.on('cooking_complete', ({ id }) => {
     const order = orders.find(o => o.id === id);
     if (order && order.status === '調理中') {
@@ -113,15 +130,12 @@ io.on('connection', (socket) => {
     console.log(`レジから呼び出し: 注文番号 ${id}`);
     const order = orders.find(o => o.id === id);
     
-    // ステータスを「提供済み」に変更
     if (order && order.status === '提供可能') {
         order.status = '提供済み';
         console.log(`ステータス更新: ${id} -> 提供済み`);
-        // 全管理画面にステータス更新を通知
         io.emit('status_updated', order); 
     }
 
-    // お客様への通知
     const targetSocketId = customerSockets[id];
     if (targetSocketId) io.to(targetSocketId).emit('order_ready');
 
@@ -130,17 +144,4 @@ io.on('connection', (socket) => {
       const payload = JSON.stringify({ title: 'ご注文の準備ができました！', body: `注文番号: ${id} 番のお客様、カウンターまでお越しください。` });
       webpush.sendNotification(subscription, payload)
         .then(() => { delete subscriptions[id]; delete customerSockets[id]; })
-        .catch(err => { if (err.statusCode === 410 || err.statusCode === 404) delete subscriptions[id]; });
-    }
-  });
-  
-  // 切断処理
-  socket.on('disconnect', () => {
-    for (const orderId in customerSockets) { if (customerSockets[orderId] === socket.id) delete customerSockets[orderId]; }
-  });
-}); // ← io.on('connection', ...) の閉じカッコ
-
-// --- サーバー起動 ---
-const PORT = process.env.PORT || 3000; 
-server.listen(PORT, () => console.log(`サーバー起動: http://localhost:${PORT}`));
-// ← ファイルの本当の終わり
+        .catch(err => { if (err.statusCode === 410 || err.
