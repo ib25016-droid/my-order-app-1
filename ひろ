@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>街歩きスタンプラリー</title>
+    <!-- Tailwind CSS (スタイリング用) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML5 QR Code (QRコード読み取り用) -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        /* タブ切り替え用の非表示クラス */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        /* 景品リストのスクロール用 */
+        #tab-prize { max-height: 80vh; overflow-y: auto; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 pb-20">
+
+    <!-- ヘッダー -->
+    <header class="bg-blue-600 text-white p-4 sticky top-0 z-50 flex justify-between items-center shadow-md">
+        <h1 id="header-title" class="text-lg font-bold mx-auto cursor-pointer" data-i18n="headerTitle">スタンプラリー</h1>
+        
+        <div class="flex items-center space-x-2">
+            <select id="lang-select" onchange="changeLanguage()" class="bg-blue-800 text-white text-xs px-2 py-1 rounded border-none outline-none cursor-pointer">
+                <option value="ja">JP</option>
+                <option value="en">EN</option>
+                <option value="zh">CN</option>
+            </select>
+            <div class="bg-blue-800 px-3 py-1 rounded-full font-bold text-sm">
+                <span id="point-display">0</span> pt
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="p-4 max-w-md mx-auto">
+
+        <!-- 1. ミッション画面 -->
+        <section id="tab-mission" class="tab-content active fade-in">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2" data-i18n="missionTitle1">📋 旅行前ミッション</h2>
+            <div class="space-y-4">
+                
+                <!-- お気に入りミッション (ID付与) -->
+                <div id="m1-card" class="bg-white p-4 rounded-lg shadow border-l-4 border-red-500 transition-all duration-300">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-lg" data-i18n="m1Title">鞆の浦の旅を計画しよう</h3>
+                            <p class="text-sm text-gray-600 mt-1" data-i18n="m1Desc">鞆の浦の行きたい場所を３か所お気に入りに登録する</p>
+                        </div>
+                        <div id="m1-status" class="text-right text-red-500 font-bold ml-2 whitespace-nowrap">+50 pt</div>
+                    </div>
+                    <!-- 進捗表示 -->
+                    <p id="m1-progress" class="text-xs text-blue-600 mt-2 font-bold bg-blue-50 inline-block px-2 py-1 rounded">お気に入り登録: 0 / 3</p>
+                </div>
+
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
+                    <h3 class="font-bold text-lg" data-i18n="m2Title">町の見どころを知ろう</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="m2Desc">鞆の浦の紹介記事を読み、クイズに回答する</p>
+                    <div class="mt-2 text-right text-green-500 font-bold">+50 pt</div>
+                </div>
+            </div>
+
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2 mt-8" data-i18n="missionTitle2">📋 現地ミッション</h2>
+            <div class="space-y-4">
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-400">
+                    <h3 class="font-bold text-lg" data-i18n="mA1Title">📷 スポットQRスキャン</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA1Desc">観光スポットのQRコードを読み取る<br><span class="text-xs text-gray-400">※1スポットにつき1日1回</span></p>
+                    <div class="mt-2 text-right text-blue-500 font-bold">+10 pt</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-blue-600">
+                    <h3 class="font-bold text-lg" data-i18n="mA2Title">🗺️ 指定スポット周遊</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA2Desc">指定されたスポットをすべて巡るミッションを達成する</p>
+                    <div class="mt-2 text-right text-blue-600 font-bold">+300 pt</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-orange-400">
+                    <h3 class="font-bold text-lg" data-i18n="mA3Title">🛍️ お買い物ボーナス</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA3Desc">参加店舗で買い物をする<br><span class="text-xs text-gray-400">※1会計につき1回</span></p>
+                    <div class="mt-2 text-right text-orange-500 font-bold">+500 pt</div>
+                </div>
+                <!-- ほかミッション省略せずそのまま記載 -->
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-orange-500">
+                    <h3 class="font-bold text-lg" data-i18n="mA4Title">🍽️ 飲食店を利用する</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA4Desc">参加飲食店でお食事・休憩をする<br><span class="text-xs text-gray-400">※来店確認後に付与</span></p>
+                    <div class="mt-2 text-right text-orange-600 font-bold">+500 pt</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-yellow-500">
+                    <h3 class="font-bold text-lg" data-i18n="mA5Title">🛶 体験・ガイドツアー</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA5Desc">体験施設・ガイドツアーを利用する<br><span class="text-xs text-gray-400">※体験実施後に付与</span></p>
+                    <div class="mt-2 text-right text-yellow-600 font-bold">+1,000 pt</div>
+                </div>
+                <div class="bg-white p-4 rounded-lg shadow border-l-4 border-pink-400">
+                    <h3 class="font-bold text-lg" data-i18n="mA6Title">📝 口コミ・アンケート</h3>
+                    <p class="text-sm text-gray-600 mt-1" data-i18n="mA6Desc">口コミ・アンケートに回答する<br><span class="text-xs text-gray-400">※月1回まで</span></p>
+                    <div class="mt-2 text-right text-pink-500 font-bold">+100 pt</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. QRコード読み取り画面 -->
+        <section id="tab-qr" class="tab-content fade-in">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2" data-i18n="qrTitle">📷 カメラで読み取る</h2>
+            <div class="bg-white p-4 rounded-lg shadow text-center">
+                <p class="mb-4 text-sm text-gray-600" data-i18n="qrDesc">現地のQRコードをスキャンしてポイントを獲得しましょう。</p>
+                <div id="reader" class="w-full mx-auto overflow-hidden rounded-lg mb-4"></div>
+                
+                <div id="dev-test-area" class="mt-8 p-4 bg-gray-50 border border-dashed border-gray-300 rounded">
+                    <p class="text-xs text-red-500 font-bold mb-2">※テスト用</p>
+                    <button onclick="simulateScan(1000)" class="bg-gray-800 text-white px-4 py-2 rounded shadow w-full">
+                        テストスキャン実行（+1000pt）
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. マップ＆スポット画面 -->
+        <section id="tab-map" class="tab-content fade-in">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2" data-i18n="mapTitle">🗺️ チェックポイント</h2>
+            <div class="bg-white p-2 rounded-lg shadow relative mb-6">
+                <div class="w-full h-80 rounded flex items-center justify-center relative overflow-hidden border border-gray-200">
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d13144.606774653523!2d133.3725515239999!3d34.381395568800185!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x355110d7a0c10b4f%3A0xc48c1e403d7c2f6!2z5bqD5bO255yM56aP5bGx5biC6鞆55S6!5e0!3m2!1sja!2sjp!4v1700000000000!5m2!1sja!2sjp" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                </div>
+                <p class="text-xs text-gray-500 mt-2 text-center" data-i18n="mapNote">※マップをスクロール・拡大して周辺のスポットを確認できます</p>
+            </div>
+
+            <!-- ★お気に入り機能付き スポット一覧 -->
+            <h3 class="font-bold text-lg mb-2 text-blue-700" data-i18n="spotListTitle">📍 観光スポット（お気に入り登録）</h3>
+            <p class="text-xs text-gray-600 mb-3" data-i18n="spotListDesc">行きたい場所のハートマークをタップ！3つ登録するとミッション達成です。</p>
+            
+            <div id="spot-list" class="space-y-2">
+                <!-- ここにJavaScriptでスポット一覧が生成されます -->
+            </div>
+        </section>
+
+        <!-- 4. 景品交換画面 -->
+        <section id="tab-prize" class="tab-content fade-in">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2" data-i18n="prizeTitle">🏆 景品交換</h2>
+            <!-- 景品リストの中身は省略せずそのまま -->
+            <div class="space-y-3">
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🍽️</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p1Title">飲食店クーポン（300円引き）</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p1Limit">上限: 300件</p>
+                            <p class="text-sm text-red-500 font-bold">1,000 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p1', 1000)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🛍️</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p2Title">土産店クーポン（500円引き）</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p2Limit">上限: 100件</p>
+                            <p class="text-sm text-red-500 font-bold">2,000 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p2', 2000)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🎁</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p3Title">特産品（送料込みの想定）</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p3Limit">上限: 20件</p>
+                            <p class="text-sm text-red-500 font-bold">8,000 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p3', 8000)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🏨</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p4Title">宿泊料金5％オフ</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p4Limit">上限: 20件 (割引上限20,000円)</p>
+                            <p class="text-sm text-red-500 font-bold">10,000 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p4', 10000)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">📖</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p5Title">鞆の浦の歴史・町並み解説</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p5Limit">上限: なし</p>
+                            <p class="text-sm text-red-500 font-bold">300 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p5', 300)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🏆</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p6Title">デジタル達成証・称号</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p6Limit">上限: なし</p>
+                            <p class="text-sm text-red-500 font-bold">500 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p6', 500)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">🗺️</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p7Title">おすすめ散策ルートのデジタルマップ</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p7Limit">上限: なし</p>
+                            <p class="text-sm text-red-500 font-bold">700 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p7', 700)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+                <div class="bg-white p-4 rounded shadow flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="text-3xl mr-3">💡</div>
+                        <div>
+                            <h3 class="font-bold text-sm" data-i18n="p8Title">ミッション追加ヒント・限定クイズ</h3>
+                            <p class="text-xs text-gray-500" data-i18n="p8Limit">上限: なし</p>
+                            <p class="text-sm text-red-500 font-bold">500 pt</p>
+                        </div>
+                    </div>
+                    <button onclick="exchangePrize('p8', 500)" class="bg-purple-600 text-white px-3 py-1 rounded shadow hover:bg-purple-700 font-bold text-sm" data-i18n="btnEx">交換</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 5. 獲得済み景品（持ち物）画面 -->
+        <section id="tab-inventory" class="tab-content fade-in">
+            <h2 class="text-2xl font-bold mb-4 border-b-2 border-blue-500 pb-2" data-i18n="invTitle">👜 獲得した景品</h2>
+            
+            <h3 class="font-bold text-lg mt-4 mb-2 text-blue-600" data-i18n="invCoupons">🎟️ クーポン</h3>
+            <div id="inventory-coupons" class="space-y-3">
+                <p class="text-sm text-gray-500" data-i18n="invEmptyCoupon">まだ獲得したクーポンはありません。</p>
+            </div>
+            
+            <h3 class="font-bold text-lg mt-6 mb-2 text-green-600" data-i18n="invOthers">🎁 その他・デジタルコンテンツ</h3>
+            <div id="inventory-others" class="space-y-3">
+                <p class="text-sm text-gray-500" data-i18n="invEmptyOther">まだ獲得したその他の景品はありません。</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ボトムナビゲーション -->
+    <nav class="fixed bottom-0 w-full bg-white border-t border-gray-200 shadow-lg flex justify-around p-2 pb-safe z-50">
+        <button onclick="switchTab('mission')" class="nav-btn flex flex-col items-center p-1 text-blue-600 w-1/5" data-target="mission">
+            <span class="text-xl mb-1">📋</span><span class="text-[10px]" data-i18n="navMission">ミッション</span>
+        </button>
+        <button onclick="switchTab('qr')" class="nav-btn flex flex-col items-center p-1 text-gray-400 w-1/5" data-target="qr">
+            <span class="text-xl mb-1">📷</span><span class="text-[10px]" data-i18n="navScan">スキャン</span>
+        </button>
+        <button onclick="switchTab('map')" class="nav-btn flex flex-col items-center p-1 text-gray-400 w-1/5" data-target="map">
+            <span class="text-xl mb-1">🗺️</span><span class="text-[10px]" data-i18n="navMap">マップ</span>
+        </button>
+        <button onclick="switchTab('prize')" class="nav-btn flex flex-col items-center p-1 text-gray-400 w-1/5" data-target="prize">
+            <span class="text-xl mb-1">🏆</span><span class="text-[10px]" data-i18n="navPrize">景品交換</span>
+        </button>
+        <button onclick="switchTab('inventory')" class="nav-btn flex flex-col items-center p-1 text-gray-400 w-1/5" data-target="inventory">
+            <span class="text-xl mb-1">👜</span><span class="text-[10px]" data-i18n="navInventory">持ち物</span>
+        </button>
+    </nav>
+
+    <!-- アプリのロジック (JavaScript) -->
+    <script>
+        // === 共通データ ===
+        let currentPoints = 0;
+        let qrScanner = null;
+        const prizeLimits = { p1: 300, p2: 100, p3: 20, p4: 20, p5: Infinity, p6: Infinity, p7: Infinity, p8: Infinity };
+        let exchangeCounts = { p1: 0, p2: 0, p3: 0, p4: 0, p5: 0, p6: 0, p7: 0, p8: 0 };
+        const prizeCategories = { p1: 'coupon', p2: 'coupon', p3: 'other', p4: 'coupon', p5: 'other', p6: 'other', p7: 'other', p8: 'other' };
+
+        // === お気に入りミッションデータ ===
+        let favoritedSpots = [];
+        let m1Cleared = false;
+        const spotsData = [
+            { id: 's1', ja: '鞆の浦 常夜燈', en: 'Joyato Lighthouse', zh: '鞆之浦 常夜灯' },
+            { id: 's2', ja: '福禅寺 対潮楼', en: 'Fukuzenji Taichoro', zh: '福禅寺 对潮楼' },
+            { id: 's3', ja: '仙酔島', en: 'Sensuijima Island', zh: '仙醉岛' },
+            { id: 's4', ja: '太田家住宅', en: 'Ota Residence', zh: '太田家住宅' },
+            { id: 's5', ja: 'いろは丸展示館', en: 'Irohamaru Museum', zh: '伊吕波丸展示馆' }
+        ];
+
+        // ページ読み込み時にスポットを描画
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSpots();
+        });
+
+        // タブ切り替え
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-blue-600');
+                btn.classList.add('text-gray-400');
+                if(btn.dataset.target === tabId) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-blue-600');
+                }
+            });
+
+            if(tabId === 'qr') { startQRScanner(); } else { stopQRScanner(); }
+        }
+
+        // ポイント追加
+        function addPoints(pts) {
+            currentPoints += pts;
+            document.getElementById('point-display').innerText = currentPoints;
+        }
+
+        // QRスキャナー
+        function startQRScanner() {
+            if(!qrScanner) {
+                qrScanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250, supportedScanTypes: [0] });
+                qrScanner.render((decodedText) => {
+                    addPoints(10);
+                    const lang = document.getElementById('lang-select').value;
+                    alert(i18nData[lang].alertSuccessScan.replace('{pts}', 10).replace('{total}', currentPoints));
+                    stopQRScanner();
+                    switchTab('mission');
+                }, (error) => {});
+            }
+        }
+        function stopQRScanner() {
+            if(qrScanner) {
+                qrScanner.clear().then(() => { qrScanner = null; }).catch(error => {});
+            }
+        }
+        function simulateScan(pts) { 
+            addPoints(pts);
+            const lang = document.getElementById('lang-select').value;
+            alert(i18nData[lang].alertSuccessScan.replace('{pts}', pts).replace('{total}', currentPoints));
+        }
+
+        // スポット描画 ＆ お気に入り機能
+        function renderSpots() {
+            const lang = document.getElementById('lang-select').value;
+            const container = document.getElementById('spot-list');
+            container.innerHTML = '';
+            
+            spotsData.forEach(spot => {
+                const isFav = favoritedSpots.includes(spot.id);
+                const heart = isFav ? '❤️' : '🤍';
+                const name = spot[lang];
+                
+                container.innerHTML += `
+                    <div class="bg-white p-3 rounded shadow flex justify-between items-center transition-colors ${isFav ? 'bg-red-50' : ''}">
+                        <span class="font-bold text-sm text-gray-800">${name}</span>
+                        <button onclick="toggleFavorite('${spot.id}')" class="text-2xl px-2 active:scale-125 transition-transform drop-shadow-sm cursor-pointer">${heart}</button>
+                    </div>
+                `;
+            });
+            updateMissionProgress(lang);
+        }
+
+        function toggleFavorite(spotId) {
+            if (favoritedSpots.includes(spotId)) {
+                favoritedSpots = favoritedSpots.filter(id => id !== spotId);
+            } else {
+                favoritedSpots.push(spotId);
+            }
+            renderSpots();
+            checkMissions();
+        }
+
+        function checkMissions() {
+            if (!m1Cleared && favoritedSpots.length >= 3) {
+                m1Cleared = true;
+                const lang = document.getElementById('lang-select').value;
+                const t = i18nData[lang];
+                
+                // 少し遅延させてアラート表示（UIの更新を先に見せるため）
+                setTimeout(() => {
+                    alert(t.alertMissionClear);
+                    addPoints(50);
+                    renderSpots(); // ミッションUIを「達成済み」に更新
+                }, 300);
+            }
+        }
+
+        function updateMissionProgress(lang) {
+            const t = i18nData[lang];
+            const m1Card = document.getElementById('m1-card');
+            const m1Status = document.getElementById('m1-status');
+            const m1Progress = document.getElementById('m1-progress');
+
+            if (m1Cleared) {
+                m1Card.classList.remove('border-red-500');
+                m1Card.classList.add('border-gray-400', 'bg-gray-100', 'opacity-70');
+                m1Status.innerHTML = `<span class="text-gray-500">${t.cleared}</span>`;
+                m1Progress.innerHTML = `<span class="text-gray-500">${t.favProgress.replace('{count}', favoritedSpots.length)}</span>`;
+                m1Progress.classList.replace('bg-blue-50', 'bg-gray-200');
+                m1Progress.classList.replace('text-blue-600', 'text-gray-500');
+            } else {
+                m1Progress.innerHTML = t.favProgress.replace('{count}', favoritedSpots.length);
+            }
+        }
+
+        // 景品交換機能
+        function exchangePrize(prizeId, cost) {
+            const lang = document.getElementById('lang-select').value;
+            const t = i18nData[lang];
+            const prizeName = t[`${prizeId}Title`]; 
+            
+            if (exchangeCounts[prizeId] >= prizeLimits[prizeId]) {
+                alert(t.alertLimit.replace('{prize}', prizeName));
+                return; 
+            }
+            if (currentPoints >= cost) {
+                if (confirm(t.alertConfirm.replace('{prize}', prizeName).replace('{cost}', cost))) {
+                    currentPoints -= cost;
+                    exchangeCounts[prizeId]++; 
+                    document.getElementById('point-display').innerText = currentPoints;
+                    alert(t.alertRedeemed.replace('{prize}', prizeName));
+                    renderInventory();
+                }
+            } else {
+                alert(t.alertFail.replace('{diff}', cost - currentPoints));
+            }
+        }
+
+        // 持ち物画面描画
+        function renderInventory() {
+            const lang = document.getElementById('lang-select').value;
+            const t = i18nData[lang];
+            const couponsContainer = document.getElementById('inventory-coupons');
+            const othersContainer = document.getElementById('inventory-others');
+            
+            couponsContainer.innerHTML = '';
+            othersContainer.innerHTML = '';
+
+            let hasCoupons = false;
+            let hasOthers = false;
+
+            for (const [prizeId, count] of Object.entries(exchangeCounts)) {
+                if (count > 0) {
+                    const category = prizeCategories[prizeId];
+                    const prizeName = t[`${prizeId}Title`]; 
+                    
+                    const itemHTML = `
+                        <div class="bg-white p-4 rounded shadow border-l-4 ${category === 'coupon' ? 'border-blue-500' : 'border-green-500'} flex justify-between items-center mb-3">
+                            <span class="font-bold text-sm leading-tight pr-2">${prizeName}</span>
+                            <span class="bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full min-w-[60px] text-center whitespace-nowrap">${t.invOwn}${count}</span>
+                        </div>
+                    `;
+                    if (category === 'coupon') {
+                        couponsContainer.innerHTML += itemHTML;
+                        hasCoupons = true;
+                    } else {
+                        othersContainer.innerHTML += itemHTML;
+                        hasOthers = true;
+                    }
+                }
+            }
+
+            if (!hasCoupons) couponsContainer.innerHTML = `<p class="text-sm text-gray-500">${t.invEmptyCoupon}</p>`;
+            if (!hasOthers) othersContainer.innerHTML = `<p class="text-sm text-gray-500">${t.invEmptyOther}</p>`;
+        }
+
+        // 翻訳データ
+        const i18nData = {
+            ja: {
+                headerTitle: "スタンプラリー",
+                navMission: "ミッション", navScan: "スキャン", navMap: "マップ", navPrize: "景品交換", navInventory: "持ち物",
+                missionTitle1: "📋 旅行前ミッション", missionTitle2: "📋 現地ミッション",
+                m1Title: "鞆の浦の旅を計画しよう", m1Desc: "鞆の浦の行きたい場所を３か所お気に入りに登録する",
+                m2Title: "町の見どころを知ろう", m2Desc: "鞆の浦の紹介記事を読み、クイズに回答する",
+                mA1Title: "📷 スポットQRスキャン", mA1Desc: "観光スポットのQRコードを読み取る<br><span class='text-xs text-gray-400'>※1スポットにつき1日1回</span>",
+                mA2Title: "🗺️ 指定スポット周遊", mA2Desc: "指定されたスポットをすべて巡るミッションを達成する",
+                mA3Title: "🛍️ お買い物ボーナス", mA3Desc: "参加店舗で買い物をする<br><span class='text-xs text-gray-400'>※1会計につき1回</span>",
+                mA4Title: "🍽️ 飲食店を利用する", mA4Desc: "参加飲食店でお食事・休憩をする<br><span class='text-xs text-gray-400'>※来店確認後に付与</span>",
+                mA5Title: "🛶 体験・ガイドツアー", mA5Desc: "体験施設・ガイドツアーを利用する<br><span class='text-xs text-gray-400'>※体験実施後に付与</span>",
+                mA6Title: "📝 口コミ・アンケート", mA6Desc: "口コミ・アンケートに回答する<br><span class='text-xs text-gray-400'>※月1回まで</span>",
+                qrTitle: "📷 カメラで読み取る", qrDesc: "現地のQRコードをスキャンしてポイントを獲得しましょう。",
+                mapTitle: "🗺️ チェックポイント", mapNote: "※マップをスクロール・拡大して周辺のスポットを確認できます",
+                spotListTitle: "📍 観光スポット（お気に入り登録）", spotListDesc: "行きたい場所のハートマークをタップ！3つ登録するとミッション達成です。",
+                favProgress: "お気に入り登録: {count} / 3", cleared: "✅ 達成済み",
+                prizeTitle: "🏆 景品交換", btnEx: "交換",
+                p1Title: "飲食店クーポン（300円引き）", p1Limit: "上限: 300件",
+                p2Title: "土産店クーポン（500円引き）", p2Limit: "上限: 100件",
+                p3Title: "特産品（送料込みの想定）", p3Limit: "上限: 20件",
+                p4Title: "宿泊料金5％オフ", p4Limit: "上限: 20件 (割引上限20,000円)",
+                p5Title: "鞆の浦の歴史・町並み解説", p5Limit: "上限: なし",
+                p6Title: "デジタル達成証・称号", p6Limit: "上限: なし",
+                p7Title: "おすすめ散策ルートのデジタルマップ", p7Limit: "上限: なし",
+                p8Title: "ミッション追加ヒント・限定クイズ", p8Limit: "上限: なし",
+                invTitle: "👜 獲得した景品", invCoupons: "🎟️ クーポン", invOthers: "🎁 その他・デジタルコンテンツ",
+                invEmptyCoupon: "まだ獲得したクーポンはありません。", invEmptyOther: "まだ獲得したその他の景品はありません。", invOwn: "所持: ",
+                alertSuccessScan: "スキャン成功！\n{pts}ポイント獲得しました！\n（現在: {total}pt）",
+                alertMissionClear: "🎉 ミッションクリア！\n行きたい場所を3つお気に入り登録しました。\nボーナス 50 pt 獲得！",
+                alertLimit: "申し訳ありません。{prize} は交換上限に達しています！",
+                alertConfirm: "{prize} を {cost}pt で交換しますか？",
+                alertRedeemed: "{prize} と交換しました！",
+                alertFail: "ポイントが足りません！（あと {diff}pt 必要です）"
+            },
+            en: {
+                headerTitle: "Stamp Rally",
+                navMission: "Missions", navScan: "Scan", navMap: "Map", navPrize: "Redeem", navInventory: "Inventory",
+                missionTitle1: "📋 Pre-Trip Missions", missionTitle2: "📋 Local Missions",
+                m1Title: "Plan your trip", m1Desc: "Save 3 favorite spots in Tomonoura",
+                m2Title: "Learn about the town", m2Desc: "Read the article and answer the quiz",
+                mA1Title: "📷 Scan Spot QR", mA1Desc: "Scan QR code at tourist spots<br><span class='text-xs text-gray-400'>*Once per spot per day</span>",
+                mA2Title: "🗺️ Spot Tour Mission", mA2Desc: "Visit all designated spots",
+                mA3Title: "🛍️ Shopping Bonus", mA3Desc: "Shop at participating stores<br><span class='text-xs text-gray-400'>*Once per transaction</span>",
+                mA4Title: "🍽️ Dine at Restaurants", mA4Desc: "Eat at participating restaurants<br><span class='text-xs text-gray-400'>*Granted after visit confirmation</span>",
+                mA5Title: "🛶 Experience & Tour", mA5Desc: "Join a guide tour or activity<br><span class='text-xs text-gray-400'>*Granted after experience</span>",
+                mA6Title: "📝 Review & Survey", mA6Desc: "Answer a survey or write a review<br><span class='text-xs text-gray-400'>*Once per month</span>",
+                qrTitle: "📷 Scan QR Code", qrDesc: "Scan local QR codes to earn points.",
+                mapTitle: "🗺️ Checkpoints", mapNote: "*Scroll and zoom the map to find nearby spots",
+                spotListTitle: "📍 Tourist Spots (Favorites)", spotListDesc: "Tap the heart icon for places you want to visit! Save 3 to clear the mission.",
+                favProgress: "Favorites: {count} / 3", cleared: "✅ Cleared",
+                prizeTitle: "🏆 Exchange Prizes", btnEx: "Redeem",
+                p1Title: "Restaurant Coupon (300 JPY off)", p1Limit: "Limit: 300",
+                p2Title: "Souvenir Shop Coupon (500 JPY off)", p2Limit: "Limit: 100",
+                p3Title: "Local Specialty (incl. shipping)", p3Limit: "Limit: 20",
+                p4Title: "Accommodation 5% off", p4Limit: "Limit: 20 (Max 20,000 JPY off)",
+                p5Title: "Tomonoura History & Town Guide", p5Limit: "No limit",
+                p6Title: "Digital Certificate & Title", p6Limit: "No limit",
+                p7Title: "Recommended Route Digital Map", p7Limit: "No limit",
+                p8Title: "Mission Hint & Exclusive Quiz", p8Limit: "No limit",
+                invTitle: "👜 Earned Prizes", invCoupons: "🎟️ Coupons", invOthers: "🎁 Others / Digital",
+                invEmptyCoupon: "You haven't earned any coupons yet.", invEmptyOther: "You haven't earned any other prizes yet.", invOwn: "Owned: ",
+                alertSuccessScan: "Success! You earned {pts} points!\n(Total: {total}pt)",
+                alertMissionClear: "🎉 Mission Cleared!\nYou saved 3 favorite spots.\nEarned 50 bonus points!",
+                alertLimit: "{prize} is out of stock limit!",
+                alertConfirm: "Redeem {prize} for {cost}pt?",
+                alertRedeemed: "Successfully redeemed {prize}!",
+                alertFail: "Not enough points! (Need {diff} more)"
+            },
+            zh: {
+                headerTitle: "印章打卡",
+                navMission: "任务", navScan: "扫码", navMap: "地图", navPrize: "兑换奖品", navInventory: "我的物品",
+                missionTitle1: "📋 行前任务", missionTitle2: "📋 当地任务",
+                m1Title: "计划您的鞆之浦之旅", m1Desc: "收藏3个您想去的鞆之浦景点",
+                m2Title: "了解小镇看点", m2Desc: "阅读介绍文章并参与问答",
+                mA1Title: "📷 扫描景点QR码", mA1Desc: "扫描旅游景点的QR码<br><span class='text-xs text-gray-400'>※每个景点每天限1次</span>",
+                mA2Title: "🗺️ 游览指定景点", mA2Desc: "完成游览所有指定景点的任务",
+                mA3Title: "🛍️ 购物奖励", mA3Desc: "在参与活动的店铺购物<br><span class='text-xs text-gray-400'>※每次结账限1次</span>",
+                mA4Title: "🍽️ 在餐饮店消费", mA4Desc: "在参与活动的餐饮店用餐或休息<br><span class='text-xs text-gray-400'>※到店确认后发放</span>",
+                mA5Title: "🛶 体验与导游讲解", mA5Desc: "参与体验设施或导游讲解<br><span class='text-xs text-gray-400'>※体验结束后发放</span>",
+                mA6Title: "📝 评价与问卷", mA6Desc: "参与评价或填写问卷调查<br><span class='text-xs text-gray-400'>※每月限1次</span>",
+                qrTitle: "📷 相机扫码", qrDesc: "扫描当地QR码以获取积分。",
+                mapTitle: "🗺️ 打卡点", mapNote: "※滑动或缩放地图以查看周边景点",
+                spotListTitle: "📍 旅游景点（收藏）", spotListDesc: "点击心形图标收藏想去的地方！收藏3个即可完成任务。",
+                favProgress: "已收藏: {count} / 3", cleared: "✅ 已完成",
+                prizeTitle: "🏆 兑换奖品", btnEx: "兑换",
+                p1Title: "餐饮店优惠券（减300日元）", p1Limit: "限量: 300份",
+                p2Title: "纪念品店优惠券（减500日元）", p2Limit: "限量: 100份",
+                p3Title: "当地特产（含运费）", p3Limit: "限量: 20份",
+                p4Title: "住宿费95折", p4Limit: "限量: 20份 (最高优惠20,000日元)",
+                p5Title: "鞆之浦历史与街景解说", p5Limit: "无上限",
+                p6Title: "数字成就证书及称号", p6Limit: "无上限",
+                p7Title: "推荐漫步路线数字地图", p7Limit: "无上限",
+                p8Title: "任务追加提示与限定问答", p8Limit: "无上限",
+                invTitle: "👜 已获物品", invCoupons: "🎟️ 优惠券", invOthers: "🎁 其他及数字内容",
+                invEmptyCoupon: "您还没有获得任何优惠券。", invEmptyOther: "您还没有获得其他奖品。", invOwn: "持有: ",
+                alertSuccessScan: "扫码成功！\n获得 {pts} 积分！\n（当前: {total}pt）",
+                alertMissionClear: "🎉 任务完成！\n您已收藏3个想去的景点。\n获得 50 点额外积分！",
+                alertLimit: "很抱歉，{prize} 已达兑换上限！",
+                alertConfirm: "确定使用 {cost}pt 兑换 {prize} 吗？",
+                alertRedeemed: "已成功兑换 {prize}！",
+                alertFail: "积分不足！（还需 {diff}pt）"
+            }
+        };
+
+        function changeLanguage() {
+            const lang = document.getElementById('lang-select').value;
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (i18nData[lang] && i18nData[lang][key]) {
+                    el.innerHTML = i18nData[lang][key];
+                }
+            });
+            renderSpots(); // 言語切り替え時にスポット名とミッションUIも更新
+            renderInventory();
+        }
+    </script>
+</body>
+</html>
